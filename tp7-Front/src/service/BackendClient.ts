@@ -1,3 +1,5 @@
+import Pedido from "../types/Pedido";
+import PreferenceMP from "../types/mercadopago/PreferenceMP";
 import { AbstractBackendClient } from "./AbstractBackendClient";
 
 export default abstract class BackendClient<T> extends AbstractBackendClient<T> {
@@ -92,3 +94,18 @@ export default abstract class BackendClient<T> extends AbstractBackendClient<T> 
     await this.request(path, options);
   }
 }
+
+
+export async function createPreferenceMP(pedido?:Pedido){
+  let urlServer = 'http://localhost:8080/api/create_preference_mp';
+let method:string = "POST";
+  const response = await fetch(urlServer, {
+  "method": method,
+  "body": JSON.stringify(pedido),
+  "headers": {
+  "Content-Type": 'application/json'
+  }
+});
+  return await response.json() as PreferenceMP;   
+}   
+

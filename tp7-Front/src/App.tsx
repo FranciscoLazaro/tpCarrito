@@ -5,6 +5,7 @@ import Home from './Components/screens/Home/Home';
 import Instrumento from './Components/screens/Instrumento/Instrumento';
 import Navbar from './Components/ui/common/NavBar/NavBar';
 import InstrumentoType from './types/Instrumento';
+import CheckoutMP from './Components/ui/common/mp/CheckoutMP';
 
 const App: React.FC = () => {
   const [carrito, setCarrito] = useState<InstrumentoType[]>([]);
@@ -20,6 +21,8 @@ const App: React.FC = () => {
         <Route path="/" element={<Home handleAddToCart={handleAddToCart} />} />
         <Route path="/categorias" element={<Categoria />} />
         <Route path="/instrumentos" element={<Instrumento />} />
+        <Route path="/mercadopago" element={<CheckoutMP />} />
+        <Route path="*" element={<Home handleAddToCart={handleAddToCart} />} />                            
       </Routes>
     </Router>
   );

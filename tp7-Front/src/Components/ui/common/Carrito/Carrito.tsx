@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import IconButton from '@mui/material/IconButton';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import Menu from '@mui/material/Menu';
@@ -9,7 +9,7 @@ import { PedidoDetallePost } from '../../../../types/PedidoDetallePost';
 import PedidoDetalleService from '../../../../service/PedidoDetalleService';
 import PedidoService from '../../../../service/PedidoService';
 import Swal from 'sweetalert2';
-
+import CheckoutMP from '../mp/CheckoutMP';
 
 interface CarritoProps {
   carrito: Instrumento[];
@@ -18,6 +18,7 @@ interface CarritoProps {
 const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [cantidadItems, setCantidadItems] = useState<{ [key: number]: number }>({});
+  const [totalPedido, setTotalPedido] = useState(0);
   const pedidoDetalleService = new PedidoDetalleService();
   const pedidoService = new PedidoService();
   const url = import.meta.env.VITE_API_URL;
@@ -45,7 +46,6 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
   };
 
   const handleFinalizarCompra = async () => {
-    // Realizar la solicitud POST para guardar los detalles del pedido en la base de datos
     for (const item of carrito) {
       const cantidad = cantidadItems[item.id] || 0;
       if (cantidad > 0) {
@@ -53,26 +53,21 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
           cantidad,
           idInstrumento: item.id
         };
-        await pedidoDetalleService.post(url+'/pedidoDetalle', pedidoDetalle);
+        await pedidoDetalleService.post(url + '/pedidoDetalle', pedidoDetalle);
       }
     }
 
-    // Calcular el total del pedido sumando los precios de todos los elementos en el carrito
     const totalPedido = carrito.reduce((total, item) => total + (item.precio * (cantidadItems[item.id] || 0)), 0);
-    
-    // Crear un array con los IDs de los instrumentos en el carrito
-    const pedidosDetalle = carrito.map(item => item.id);
+    setTotalPedido(totalPedido);
 
-    // Crear el objeto de pedido para enviar al backend
+    const pedidosDetalle = carrito.map(item => item.id);
     const pedido: PedidoPost = {
       totalPedido,
       pedidosDetalle
     };
 
-    // Realizar la solicitud POST para guardar el pedido en la base de datos
     await pedidoService.post(url + '/pedido', pedido);
 
-    // Limpiar el carrito después de finalizar la compra
     setCantidadItems({});
     handleClose();
 
@@ -80,9 +75,14 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
       icon: 'success',
       title: 'Pedido realizado exitosamente',
       showConfirmButton: false,
-      timer: 1500 // Ocultar automáticamente después de 1.5 segundos
+      timer: 1500
     });
   };
+
+  useEffect(() => {
+    const calculatedTotal = carrito.reduce((total, item) => total + (item.precio * (cantidadItems[item.id] || 0)), 0);
+    setTotalPedido(calculatedTotal);
+  }, [cantidadItems, carrito]);
 
   return (
     <div>
@@ -115,6 +115,8 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
         )}
         <MenuItem onClick={handleFinalizarCompra}>Finalizar Compra</MenuItem>
       </Menu>
+      <br></br>
+      <CheckoutMP montoCarrito={totalPedido} />
     </div>
   );
 };
