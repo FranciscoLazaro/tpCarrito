@@ -19,6 +19,7 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [cantidadItems, setCantidadItems] = useState<{ [key: number]: number }>({});
   const [totalPedido, setTotalPedido] = useState(0);
+  const [pedidoId, setPedidoId] = useState<number | null>(null);
   const pedidoDetalleService = new PedidoDetalleService();
   const pedidoService = new PedidoService();
   const url = import.meta.env.VITE_API_URL;
@@ -46,6 +47,7 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
   };
 
   const handleFinalizarCompra = async () => {
+    const detalle: PedidoDetallePost[] = [];
     for (const item of carrito) {
       const cantidad = cantidadItems[item.id] || 0;
       if (cantidad > 0) {
@@ -53,6 +55,7 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
           cantidad,
           idInstrumento: item.id
         };
+        detalle.push(pedidoDetalle);
         await pedidoDetalleService.post(url + '/pedidoDetalle', pedidoDetalle);
       }
     }
@@ -60,23 +63,34 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
     const totalPedido = carrito.reduce((total, item) => total + (item.precio * (cantidadItems[item.id] || 0)), 0);
     setTotalPedido(totalPedido);
 
-    const pedidosDetalle = carrito.map(item => item.id);
     const pedido: PedidoPost = {
       totalPedido,
-      pedidosDetalle
+      pedidosDetalle: detalle.map(d => d.idInstrumento) // Assuming pedidosDetalle should be an array of IDs
     };
 
-    await pedidoService.post(url + '/pedido', pedido);
+    try {
+      const response = await pedidoService.post(url + '/pedido', pedido);
+      const newPedidoId = response.id; // Adjust according to actual response structure
+      setPedidoId(newPedidoId);
 
-    setCantidadItems({});
-    handleClose();
+      setCantidadItems({});
+      handleClose();
 
-    Swal.fire({
-      icon: 'success',
-      title: 'Pedido realizado exitosamente',
-      showConfirmButton: false,
-      timer: 1500
-    });
+      Swal.fire({
+        icon: 'success',
+        title: 'Pedido realizado exitosamente',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    } catch (error) {
+      console.error("Error al crear el pedido:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al crear el pedido',
+        text: 'Hubo un error al procesar su pedido. Inténtelo nuevamente.',
+        showConfirmButton: true
+      });
+    }
   };
 
   useEffect(() => {
@@ -116,7 +130,7 @@ const Carrito: React.FC<CarritoProps> = ({ carrito }) => {
         <MenuItem onClick={handleFinalizarCompra}>Finalizar Compra</MenuItem>
       </Menu>
       <br></br>
-      <CheckoutMP montoCarrito={totalPedido} />
+      {pedidoId && <CheckoutMP pedidoId={pedidoId} montoCarrito={totalPedido} />}
     </div>
   );
 };
